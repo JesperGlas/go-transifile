@@ -6,7 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
+	"strconv"
+	"strings"
 )
 
 func main() {
@@ -27,8 +28,7 @@ func main() {
 		initReciever(host)
 	} else {
 		fmt.Println("Trying to send file " + *filePtr + " to peer " + *peerPts)
-		var data []byte = []byte(*filePtr)
-		send(host, &data)
+		send(host, *filePtr)
 	}
 }
 
@@ -56,7 +56,8 @@ func handleRequest(conn net.Conn) {
 	// log incoming request
 	fmt.Printf("Incomming file from: %s..\n", conn.RemoteAddr().String())
 
-	buf := make([]byte, 1024)
+	// read file description sent by sender
+	buf := make([]byte, 256)
 	n, err := conn.Read(buf)
 	if err != nil {
 		log.Fatal(err)
@@ -64,25 +65,41 @@ func handleRequest(conn net.Conn) {
 	// close connection
 	defer conn.Close()
 
-	// promt incomming
+	// print file desc
+	fileDesc := strings.Split(string(buf[:n]), ":")
+	fileName := fileDesc[0]
+	fileSize, _ := strconv.Atoi(fileDesc[1])
+	fmt.Printf("File: %s, Size: %d bytes\n", fileName, fileSize)
+
+	// promt for incomming file
 	var choice string
 	fmt.Printf("Accept file? [y/N] ")
 	fmt.Scanf("%s", &choice)
 
 	// response
-	time := time.Now().Format(time.ANSIC)
-	response := ""
-	if choice != "y" {
-		response = fmt.Sprintf("Reciever refused file at: %v..\n", time)
-	} else {
-		response = fmt.Sprintf("Receiver accepted %d bytes at: %v", n, time)
+	response := "1"
+	if choice == "y" {
+		response = "0"
 	}
 
 	// write response
 	conn.Write([]byte(response))
+
+	// get file
+	if response == "0" {
+		var chunkSize int64 = 1024
+		var i int64 = 0
+		fileBuf := make([]byte, fileSize)
+		for i < int64(fileSize) {
+			fmt.Printf("Recieving bytes (%d-%d/%d)..\n", i, i+chunkSize, fileSize)
+			conn.Read(fileBuf)
+			i += chunkSize
+		}
+		fmt.Println("Revieved file!")
+	}
 }
 
-func send(host string, data *[]byte) {
+func send(host string, fileName string) {
 	receiver, err := net.ResolveTCPAddr("tcp", host)
 	if err != nil {
 		log.Fatal("Could not resolve address: "+host, err)
@@ -95,16 +112,59 @@ func send(host string, data *[]byte) {
 	// close connection
 	defer conn.Close()
 
-	_, err = conn.Write([]byte(*data))
+	sendFile(fileName, conn)
+}
+
+func sendFile(fileName string, conn net.Conn) {
+	file, err := os.Open(fileName)
 	if err != nil {
-		log.Fatal("Write data faild: ", err)
+		log.Printf("Could not open file %s..\n", fileName)
+		log.Fatal(err)
+	}
+	// def close file
+	defer file.Close()
+
+	stats, err := file.Stat()
+	if err != nil {
+		log.Fatal("Error loading file stats: ", err)
+	}
+	fileSize := stats.Size()
+
+	descStr := fmt.Sprintf("%s:%d", fileName, fileSize)
+	_, err = conn.Write([]byte(descStr))
+	if err != nil {
+		log.Fatal("Failed to write transfer description to connection: ", err)
 	}
 	fmt.Println("Waiting on reciever..")
 
-	res := make([]byte, 1024)
-	rn, err := conn.Read(res)
+	res := make([]byte, 1)
+	_, err = conn.Read(res)
 	if err != nil {
-		log.Fatal("Read data failed: ", err)
+		log.Fatal("Could not read response: ", err)
 	}
-	fmt.Printf("Read %d bytes: %s\n", rn, string(res))
+	fmt.Println(string(res))
+
+	// send file if accepted
+	if string(res) == "0" {
+		var fileBuf []byte = make([]byte, fileSize)
+		bn, err := file.Read(fileBuf)
+		if err != nil {
+			log.Fatal("Could not load file to buffer: ", err)
+		}
+		fmt.Printf("Loaded %d bytes to filebuffer..\n", bn)
+
+		var chunkSize int64 = 1024
+		var i int64 = 0
+		var end int64 = 0
+		for i < fileSize {
+			end = i + chunkSize
+			if end >= fileSize {
+				end = fileSize
+			}
+			conn.Write(fileBuf[i:end])
+			fmt.Printf("Sending bytes (%d-%d/%d)..\n", i, end, fileSize)
+			i += chunkSize
+		}
+		fmt.Println("File transfer complete!")
+	}
 }
