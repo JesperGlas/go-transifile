@@ -1,0 +1,5 @@
+Hello!
+
+This is a text file.
+
+My only purpose is to test file transfers using sockets.
