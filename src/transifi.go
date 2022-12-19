@@ -54,7 +54,7 @@ func initReciever(host string) {
 
 func handleRequest(conn net.Conn) {
 	// log incoming request
-	fmt.Printf("Handling request from: %s..\n", conn.RemoteAddr().String())
+	fmt.Printf("Incomming file from: %s..\n", conn.RemoteAddr().String())
 
 	buf := make([]byte, 1024)
 	n, err := conn.Read(buf)
@@ -64,10 +64,22 @@ func handleRequest(conn net.Conn) {
 	// close connection
 	defer conn.Close()
 
-	// write response
+	// promt incomming
+	var choice string
+	fmt.Printf("Accept file? [y/N] ")
+	fmt.Scanf("%s", &choice)
+
+	// response
 	time := time.Now().Format(time.ANSIC)
-	resStr := fmt.Sprintf("Received %d bytes at: %v", n, time)
-	conn.Write([]byte(resStr))
+	response := ""
+	if choice != "y" {
+		response = fmt.Sprintf("Reciever refused file at: %v..\n", time)
+	} else {
+		response = fmt.Sprintf("Receiver accepted %d bytes at: %v", n, time)
+	}
+
+	// write response
+	conn.Write([]byte(response))
 }
 
 func send(host string, data *[]byte) {
@@ -83,11 +95,11 @@ func send(host string, data *[]byte) {
 	// close connection
 	defer conn.Close()
 
-	wn, err := conn.Write([]byte(*data))
+	_, err = conn.Write([]byte(*data))
 	if err != nil {
 		log.Fatal("Write data faild: ", err)
 	}
-	fmt.Printf("Wrote %d bytes..\n", wn)
+	fmt.Println("Waiting on reciever..")
 
 	res := make([]byte, 1024)
 	rn, err := conn.Read(res)
