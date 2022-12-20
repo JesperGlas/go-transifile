@@ -7,7 +7,7 @@ import (
 )
 
 func Advertise() {
-	conn, err := net.Dial("tcp", ":49505")
+	conn, err := net.Dial("tcp", "192.168.0.255:49505")
 	if err != nil {
 		log.Fatal("Could not advertise service: ", err.Error())
 	}
@@ -15,7 +15,7 @@ func Advertise() {
 }
 
 func FindSender() {
-	host := "192.168.1.255:49505"
+	host := "192.168.0.255:49505"
 	listener, err := net.Listen("tcp", ":49505")
 	if err != nil {
 		log.Fatal("Could not listen for services: ", err.Error())
