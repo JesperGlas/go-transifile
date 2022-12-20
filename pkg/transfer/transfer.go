@@ -3,39 +3,44 @@ package transfer
 import (
 	"log"
 	"net"
-	"sync"
 )
 
 func Advertise() {
-	conn, err := net.Dial("tcp", "192.168.0.255:49505")
+	address := net.IPv4(255, 255, 255, 255)
+	port := 49505
+	socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+		IP:   address,
+		Port: port,
+	})
 	if err != nil {
-		log.Fatal("Could not advertise service: ", err.Error())
+		log.Fatal("Could not dial UDP: ", err.Error())
 	}
-	log.Printf("Found reviever at: %s\n", conn.RemoteAddr().String())
+	log.Printf("Successfully dialed %s\n", socket.RemoteAddr().String())
+	defer socket.Close()
+
+	greeting := []byte("Hello from client!")
+	socket.Write(greeting)
 }
 
 func FindSender() {
-	host := "192.168.0.255:49505"
-	listener, err := net.Listen("tcp", ":49505")
+	address := net.IPv4(255, 255, 255, 255)
+	port := 49505
+	socket, err := net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   address,
+		Port: port,
+	})
 	if err != nil {
-		log.Fatal("Could not listen for services: ", err.Error())
+		log.Fatal("Could not listen to UDP: ", err.Error())
 	}
-	log.Printf("Listening for senders on %s\n", host)
-	defer listener.Close()
+	log.Printf("Successfully established connections: \n")
+	defer socket.Close()
 
-	conn, err := listener.Accept()
+	data := make([]byte, 1024)
+	read, remote, err := socket.ReadFromUDP(data)
 	if err != nil {
-		log.Fatal("Could not accept connection: ", err.Error())
+		log.Fatal("Could not read from UDP: ", err.Error())
 	}
-	log.Printf("Accepther connection\n")
-	defer conn.Close()
-
-	var wg sync.WaitGroup
-	go func(conn *net.Conn, wg *sync.WaitGroup) {
-		wg.Add(1)
-		defer wg.Done()
-		handleHandshake(conn)
-	}(&conn, &wg)
+	log.Printf("Read %d bytes from address %s\n", read, remote.IP.String())
 }
 
 func handleHandshake(conn *net.Conn) {
