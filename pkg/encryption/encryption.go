@@ -1,4 +1,4 @@
-package main
+package encryption
 
 import (
 	"crypto/aes"
@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	KEYSTR string = "@McQfThWmZq4t7w!z%C*F-JaNdRgUkXn"
+	kEY_STR string = "@McQfThWmZq4t7w!z%C*F-JaNdRgUkXn"
 )
 
-func encryptData(plainData *[]byte) []byte {
-	key := []byte(KEYSTR)
+func EncryptData(plainData *[]byte) []byte {
+	key := []byte(kEY_STR)
 
 	// generate cipher block
 	block, err := aes.NewCipher(key)
@@ -37,8 +37,8 @@ func encryptData(plainData *[]byte) []byte {
 	return gcm.Seal(nonce, nonce, *plainData, nil)
 }
 
-func decryptData(cipherData *[]byte) []byte {
-	key := []byte(KEYSTR)
+func DecryptData(cipherData *[]byte) []byte {
+	key := []byte(kEY_STR)
 
 	// generate cipher block
 	block, err := aes.NewCipher(key)

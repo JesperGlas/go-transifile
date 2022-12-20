@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/JesperGlas/go-transifile/pkg/encryption"
 )
 
 func loadFile(fileName string) ([]byte, error) {
@@ -42,14 +44,14 @@ func main() {
 	fmt.Printf("Plain data: %s\n", data)
 
 	// encrypt, print and output to file
-	cipher := encryptData(&data)
+	cipher := encryption.EncryptData(&data)
 	fmt.Printf("Encrypted data: %s\n", cipher)
 	err = writeFile("out_"+fileName, &cipher)
 	if err != nil {
 		log.Fatal("[Main Error] Could not output cipher: ", err.Error())
 	}
 
-	plain := decryptData(&cipher)
+	plain := encryption.DecryptData(&cipher)
 	fmt.Printf("Decrypted data: %s\n", plain)
 
 }
