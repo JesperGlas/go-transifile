@@ -59,7 +59,10 @@ func main() {
 	if *modePtr == "a" {
 		transfer.Advertise()
 	} else if *modePtr == "s" {
-		transfer.FindSender()
+		sender := transfer.FindSender()
+		if sender == "" {
+			log.Fatalln("[Main Error] Could not find sender!")
+		}
 	} else {
 		log.Fatal("Flag must be specified! [-m=a | -m=s]")
 	}

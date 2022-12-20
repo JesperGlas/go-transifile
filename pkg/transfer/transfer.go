@@ -1,48 +1,93 @@
 package transfer
 
 import (
+	"bytes"
 	"log"
 	"net"
+	"strconv"
 )
 
-func Advertise() {
+const IDENTIFIER string = "B&E)H@McQfTjWmZq4t7w!z%C*F-JaNdR"
+
+func Advertise() string {
 	address := net.IPv4(255, 255, 255, 255)
 	port := 49505
+	broadcast := address.String() + ":" + strconv.Itoa(port)
 	socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
 		IP:   address,
 		Port: port,
 	})
 	if err != nil {
-		log.Fatal("Could not dial UDP: ", err.Error())
+		log.Printf("[Advertisement Error] Could not dial broadcast address: %s\n", broadcast)
+		log.Fatal(err.Error())
 	}
-	log.Printf("Successfully dialed %s\n", socket.RemoteAddr().String())
-	defer socket.Close()
+	log.Printf("Successfully broadcasted on %s\n", socket.RemoteAddr().String())
+	socket.Write([]byte(IDENTIFIER))
+	socket.Close()
 
-	greeting := []byte("Hello from client!")
-	socket.Write(greeting)
-}
-
-func FindSender() {
-	address := net.IPv4(255, 255, 255, 255)
-	port := 49505
-	socket, err := net.ListenUDP("udp4", &net.UDPAddr{
+	log.Println("Awaiting handshake credentials from receiver..")
+	listen, err := net.ListenUDP("udp4", &net.UDPAddr{
 		IP:   address,
 		Port: port,
 	})
 	if err != nil {
-		log.Fatal("Could not listen to UDP: ", err.Error())
+		log.Println("[Sender Handshake Error] Could not listen for credentials!")
+		log.Fatal(err.Error())
 	}
-	log.Printf("Successfully established connections: \n")
-	defer socket.Close()
-
-	data := make([]byte, 1024)
-	read, remote, err := socket.ReadFromUDP(data)
+	payload := make([]byte, len(IDENTIFIER))
+	n, remote, err := listen.ReadFromUDP(payload)
 	if err != nil {
-		log.Fatal("Could not read from UDP: ", err.Error())
+		log.Println("[Read Handshake Error] Could not read UDP payload!")
+		log.Fatal(err.Error())
 	}
-	log.Printf("Read %d bytes from address %s\n", read, remote.IP.String())
+	reciever := remote.IP.String() + ":" + strconv.Itoa(remote.Port)
+	log.Printf("Handshake attempt from %s (%d bytes)\n", reciever, n)
+	listen.Close()
+
+	if bytes.EqualFold(payload, []byte(IDENTIFIER)) {
+		log.Println("Handshake verified!")
+		return reciever
+	}
+	return ""
 }
 
-func handleHandshake(conn *net.Conn) {
-	log.Println("Got a connection!")
+func FindSender() string {
+	address := net.IPv4(255, 255, 255, 255)
+	port := 49505
+	broadcast := address.String() + ":" + strconv.Itoa(port)
+	listen, err := net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   address,
+		Port: port,
+	})
+	if err != nil {
+		log.Printf("[Find Sender Error] Could not find sender at %s\n", broadcast)
+		log.Fatal(err.Error())
+	}
+	log.Printf("Successfully established connections: \n")
+
+	payload := make([]byte, len(IDENTIFIER))
+	n, remote, err := listen.ReadFromUDP(payload)
+	if err != nil {
+		log.Println("[Read Payload Error] Could not read UDP payload!")
+		log.Fatal(err.Error())
+	}
+	sender := remote.IP.String() + ":" + strconv.Itoa(remote.Port)
+	log.Printf("Connection attempt by %s (%d bytes)\n", sender, n)
+	listen.Close()
+
+	if bytes.EqualFold(payload, []byte(IDENTIFIER)) {
+		log.Println("Connection verified! Sending handshake!")
+		socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
+			IP:   address,
+			Port: port,
+		})
+		if err != nil {
+			log.Println("[Reciever Handshake Error] Could not send credentials to sender!")
+			log.Fatal(err.Error())
+		}
+		socket.Write([]byte(IDENTIFIER))
+		socket.Close()
+		return sender
+	}
+	return ""
 }
