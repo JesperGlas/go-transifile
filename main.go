@@ -1,12 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/JesperGlas/go-transifile/pkg/encryption"
+	"github.com/JesperGlas/go-transifile/pkg/transfer"
 )
 
 func loadFile(fileName string) ([]byte, error) {
@@ -29,29 +31,36 @@ func writeFile(fileName string, data *[]byte) error {
 	return os.WriteFile(path, *data, 0644)
 }
 
-func main() {
-	fileName := "test.txt"
-	fmt.Println("TransiFile")
-
+func encryptFile(fileName string) []byte {
 	// Load file in to byte-array
 	data, err := loadFile(fileName)
 	if err != nil {
-		log.Fatal("[Main Error] Could not load data from file: ", err.Error())
+		log.Fatal("[Encrypt File Error] Could not load data from file: ", err.Error())
 	}
 	fmt.Printf("Loaded %d bytes from file %s\n", len(data), fileName)
 
-	// print incoming data
-	fmt.Printf("Plain data: %s\n", data)
+	return encryption.EncryptData(&data)
+}
 
-	// encrypt, print and output to file
-	cipher := encryption.EncryptData(&data)
-	fmt.Printf("Encrypted data: %s\n", cipher)
-	err = writeFile("out_"+fileName, &cipher)
+func decryptPayload(outFileName string, cipherData *[]byte) {
+	cipher := encryption.DecryptData(cipherData)
+	err := writeFile(outFileName, &cipher)
 	if err != nil {
-		log.Fatal("[Main Error] Could not output cipher: ", err.Error())
+		log.Fatal("[Decrypt Payload Error] Could not output cipher: ", err.Error())
 	}
+}
 
-	plain := encryption.DecryptData(&cipher)
-	fmt.Printf("Decrypted data: %s\n", plain)
+func main() {
+	fmt.Println("TransiFile")
 
+	modePtr := flag.String("m", "", "Advertise or Send [a|s]")
+	flag.Parse()
+
+	if *modePtr == "a" {
+		transfer.Advertise()
+	} else if *modePtr == "s" {
+		transfer.FindSender()
+	} else {
+		log.Fatal("Flag must be specified! [-m=a | -m=s]")
+	}
 }
