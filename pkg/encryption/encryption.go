@@ -4,19 +4,18 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"io"
 	"log"
 )
 
-const (
-	kEY_STR string = "@McQfThWmZq4t7w!z%C*F-JaNdRgUkXn"
-)
+// ### PUBLIC FUNCTIONS ###
 
-func EncryptData(plainData *[]byte) []byte {
-	key := []byte(kEY_STR)
+func EncryptData(passphrase string, plainData *[]byte) []byte {
+	key := genSHA256Key(passphrase)
 
 	// generate cipher block
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(key[:])
 	if err != nil {
 		log.Fatal("[Encryption Error] Could not create cipher: ", err.Error())
 	}
@@ -37,11 +36,11 @@ func EncryptData(plainData *[]byte) []byte {
 	return gcm.Seal(nonce, nonce, *plainData, nil)
 }
 
-func DecryptData(cipherData *[]byte) []byte {
-	key := []byte(kEY_STR)
+func DecryptData(passphrase string, cipherData *[]byte) []byte {
+	key := genSHA256Key(passphrase)
 
 	// generate cipher block
-	block, err := aes.NewCipher(key)
+	block, err := aes.NewCipher(key[:])
 	if err != nil {
 		log.Fatal("[Decryption Error] Could not create cipher: ", err.Error())
 	}
@@ -60,4 +59,10 @@ func DecryptData(cipherData *[]byte) []byte {
 		log.Fatal("[Decrytion Error] Could not decipher data: ", err.Error())
 	}
 	return plainData
+}
+
+// ### PRIVATE FUNCTIONS ###
+
+func genSHA256Key(password string) [32]byte {
+	return sha256.Sum256([]byte(password))
 }

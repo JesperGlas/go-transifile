@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/JesperGlas/go-transifile/pkg/encryption"
-	"github.com/JesperGlas/go-transifile/pkg/transfer"
 )
 
 func loadFile(fileName string) ([]byte, error) {
@@ -31,7 +30,7 @@ func writeFile(fileName string, data *[]byte) error {
 	return os.WriteFile(path, *data, 0644)
 }
 
-func encryptFile(fileName string) []byte {
+func encryptFile(fileName string, passphrase string) []byte {
 	// Load file in to byte-array
 	data, err := loadFile(fileName)
 	if err != nil {
@@ -39,11 +38,11 @@ func encryptFile(fileName string) []byte {
 	}
 	fmt.Printf("Loaded %d bytes from file %s\n", len(data), fileName)
 
-	return encryption.EncryptData(&data)
+	return encryption.EncryptData(passphrase, &data)
 }
 
-func decryptPayload(outFileName string, cipherData *[]byte) {
-	cipher := encryption.DecryptData(cipherData)
+func decryptPayload(passphrase string, outFileName string, cipherData *[]byte) {
+	cipher := encryption.DecryptData(passphrase, cipherData)
 	err := writeFile(outFileName, &cipher)
 	if err != nil {
 		log.Fatal("[Decrypt Payload Error] Could not output cipher: ", err.Error())
@@ -53,17 +52,18 @@ func decryptPayload(outFileName string, cipherData *[]byte) {
 func main() {
 	fmt.Println("TransiFile")
 
-	modePtr := flag.String("m", "", "Advertise or Send [a|s]")
+	modePtr := flag.String("m", "", "Specify mode ([e]ncrypt | [d]ecrypt)")
+	filePtr := flag.String("f", "", "File name")
+	passphrasePtr := flag.String("p", "", "Password for encryption")
 	flag.Parse()
 
-	if *modePtr == "a" {
-		transfer.Advertise()
-	} else if *modePtr == "s" {
-		sender := transfer.FindSender()
-		if sender == "" {
-			log.Fatalln("[Main Error] Could not find sender!")
-		}
-	} else {
-		log.Fatal("Flag must be specified! [-m=a | -m=s]")
+	if *modePtr == "" {
+		log.Fatal("Please specify mode! (-m [e]ncrypt | [d]ecrypt)")
+	}
+	if *filePtr == "" {
+		log.Fatal("Please specify file (-f <filename>)")
+	}
+	if *passphrasePtr == "" || len(*passphrasePtr) < 10 {
+		log.Fatal("Please provide a passphrase with atleast 10 chars (-p <passphrase>)")
 	}
 }
