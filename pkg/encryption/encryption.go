@@ -17,19 +17,22 @@ func EncryptData(passphrase string, plainData *[]byte) []byte {
 	// generate cipher block
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
-		log.Fatal("[Encryption Error] Could not create cipher: ", err.Error())
+		log.Println("[encryption/EncryptData] Could not create cipher: ")
+		log.Fatal(err.Error())
 	}
 
 	// generate GCM
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		log.Fatal("[Encryption Error] Could not generate GCM: ", err.Error())
+		log.Println("[encryption/EncryptData] Could not generate GCM: ")
+		log.Fatal(err.Error())
 	}
 
 	// generate nonce
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		log.Fatal("[Encryption Error] Could not generate nonce: ", err.Error())
+		log.Println("[EncryptData] Could not generate nonce: ")
+		log.Fatal(err.Error())
 	}
 
 	// encrypt data
@@ -42,13 +45,15 @@ func DecryptData(passphrase string, cipherData *[]byte) []byte {
 	// generate cipher block
 	block, err := aes.NewCipher(key[:])
 	if err != nil {
-		log.Fatal("[Decryption Error] Could not create cipher: ", err.Error())
+		log.Println("[encryption/DecryptData] Could not create cipher: ")
+		log.Fatal(err.Error())
 	}
 
 	// generate GCM
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		log.Fatal("[Decryption Error] Could not generate GCM: ", err.Error())
+		log.Println("[encryption/DecryptData] Could not generate GCM: ")
+		log.Fatal(err.Error())
 	}
 
 	// generate nonce
@@ -56,7 +61,8 @@ func DecryptData(passphrase string, cipherData *[]byte) []byte {
 	content := (*cipherData)[gcm.NonceSize():]
 	plainData, err := gcm.Open(nil, nonce, content, nil)
 	if err != nil {
-		log.Fatal("[Decrytion Error] Could not decipher data: ", err.Error())
+		log.Println("[encrption/DecrytData] Could not decipher data: ")
+		log.Fatal(err.Error())
 	}
 	return plainData
 }
