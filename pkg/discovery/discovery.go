@@ -10,7 +10,7 @@ import (
 const IDENTIFIER string = "B&E)H@McQfTjWmZq4t7w!z%C*F-JaNdR"
 
 func Advertise() string {
-	address := net.IPv4(255, 255, 255, 255)
+	address := net.IPv4(192, 168, 0, 255)
 	port := 49505
 	broadcast := address.String() + ":" + strconv.Itoa(port)
 	socket, err := net.DialUDP("udp4", nil, &net.UDPAddr{
@@ -52,7 +52,7 @@ func Advertise() string {
 }
 
 func FindSender() string {
-	address := net.IPv4(255, 255, 255, 255)
+	address := net.IPv4(192, 168, 0, 255)
 	port := 49505
 	broadcast := address.String() + ":" + strconv.Itoa(port)
 	listen, err := net.ListenUDP("udp4", &net.UDPAddr{

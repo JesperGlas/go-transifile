@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/JesperGlas/go-transifile/pkg/discovery"
 	"github.com/JesperGlas/go-transifile/pkg/encryption"
 )
 
@@ -52,18 +53,14 @@ func decryptPayload(passphrase string, outFileName string, cipherData *[]byte) {
 func main() {
 	fmt.Println("TransiFile")
 
-	modePtr := flag.String("m", "", "Specify mode ([e]ncrypt | [d]ecrypt)")
-	filePtr := flag.String("f", "", "File name")
-	passphrasePtr := flag.String("p", "", "Password for encryption")
+	modePtr := flag.String("m", "r", "Mode [s]end | [R]ecieve")
 	flag.Parse()
 
-	if *modePtr == "" {
-		log.Fatal("Please specify mode! (-m [e]ncrypt | [d]ecrypt)")
-	}
-	if *filePtr == "" {
-		log.Fatal("Please specify file (-f <filename>)")
-	}
-	if *passphrasePtr == "" || len(*passphrasePtr) < 10 {
-		log.Fatal("Please provide a passphrase with atleast 10 chars (-p <passphrase>)")
+	if *modePtr == "s" {
+		addr := discovery.Advertise()
+		log.Printf("Found reciever: %s\n", addr)
+	} else {
+		addr := discovery.FindSender()
+		log.Printf("Found sender: %s\n", addr)
 	}
 }
